@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0B1220</color>
+    <color name="surface">#141E33</color>
+    <color name="surface2">#1B2942</color>
+    <color name="primary">#3B82F6</color>
+    <color name="primary_dark">#2563EB</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="divider">#26324F</color>
+
+    <color name="clean">#22C55E</color>
+    <color name="clean_bg">#0F2A1B</color>
+    <color name="dirty">#EF4444</color>
+    <color name="dirty_bg">#2E1416</color>
+
+    <color name="scrim">#CC000000</color>
+</resources>

@@ -1,17 +1,32 @@
 <resources>
     <string name="app_name">QC GO</string>
 
-    <string name="capture_background">Capture background</string>
-    <string name="capture_check">Capture &amp; Check</string>
-
-    <string name="result_hint">Point at the item(s), then tap Capture &amp; Check</string>
+    <!-- Capture screen -->
+    <string name="capture_background">Capture Background</string>
+    <string name="capture_items">Capture Items</string>
+    <string name="retake_background">Retake background</string>
     <string name="analyzing">Analyzing…</string>
-    <string name="result_none">No item detected — try again</string>
+    <string name="step1_title">STEP 1 OF 2</string>
+    <string name="step1_desc">Point at the empty background and capture</string>
+    <string name="step2_title">STEP 2 OF 2</string>
+    <string name="step2_desc">Place the item in the frame and capture</string>
+    <string name="bg_captured">Background captured ✓</string>
 
-    <!-- Single item -->
-    <string name="result_clean_one">✓ CLEAN  (%1$d%%)</string>
-    <string name="result_dirty_one">✗ DIRTY  (%1$d%%)</string>
-
-    <!-- Multiple items: total, clean, dirty -->
-    <string name="result_many">%1$d items\n%2$d clean · %3$d dirty</string>
+    <!-- Result screen -->
+    <string name="result_title">Scan Result</string>
+    <string name="items_header">Detected items</string>
+    <string name="scan_again">Scan Again</string>
+    <string name="clean_vs_dirty">Clean vs Dirty</string>
+    <string name="stat_total">Total</string>
+    <string name="stat_clean">Clean</string>
+    <string name="stat_dirty">Dirty</string>
+    <string name="label_clean">CLEAN</string>
+    <string name="label_dirty">DIRTY</string>
+    <string name="verdict_all_clean">ALL CLEAN</string>
+    <string name="verdict_dirty_detected">DIRTY DETECTED</string>
+    <string name="scanned_fmt">Scanned %1$d item(s)</string>
+    <string name="confidence_fmt">Confidence %1$d%%</string>
+    <string name="item_fmt">Item %1$d</string>
+    <string name="pct_clean_fmt">%1$d%% clean</string>
+    <string name="pct_dirty_fmt">%1$d%% dirty</string>
 </resources>

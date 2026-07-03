@@ -6,8 +6,13 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** One classified item. */
-data class ItemResult(val box: Rect, val label: QualityClassifier.Label, val confidence: Float)
+/** One classified item, with a small ROI thumbnail for display. */
+data class ItemResult(
+    val box: Rect,
+    val label: QualityClassifier.Label,
+    val confidence: Float,
+    val thumb: Bitmap,
+)
 
 /** Aggregate result for one capture. */
 data class FrameResult(
@@ -20,12 +25,13 @@ data class FrameResult(
 )
 
 /**
- * CameraX analyzer. Idle until the user taps "Capture & Check"; then it grabs the
- * next frame, counts items (OpenCV), and classifies each one clean/dirty.
+ * CameraX analyzer. Idle until the user taps "Capture Items"; then it grabs the
+ * next frame, counts items (OpenCV), and classifies each one clean/dirty. Each
+ * item keeps a downscaled ROI crop so the result screen can show it.
  *
- * Robust fallback: if the counter finds no items (e.g. background not captured or
- * a single bottle filling the frame), the WHOLE frame is treated as one item so
- * the user always gets a clean/dirty answer.
+ * Robust fallback: if the counter finds no items (e.g. a single bottle filling
+ * the frame), the WHOLE frame is treated as one item, so the user always gets a
+ * clean/dirty answer.
  */
 class AnalyzerPipeline(
     private val counter: ItemCounter,
@@ -36,7 +42,7 @@ class AnalyzerPipeline(
     private val captureBackground = AtomicBoolean(false)
     private val captureRequested = AtomicBoolean(false)
 
-    /** Optional: record the current empty scene to help counting. */
+    /** Record the current empty scene to help counting. */
     fun requestCaptureBackground() {
         captureBackground.set(true)
     }
@@ -55,12 +61,9 @@ class AnalyzerPipeline(
                 return
             }
 
-            // Only do the heavy work when the user tapped "Capture & Check".
             if (!captureRequested.getAndSet(false)) return
 
             var boxes: List<Rect> = counter.count(bitmap)
-
-            // Fallback: nothing detected -> classify the whole frame as one item.
             if (boxes.isEmpty()) {
                 boxes = listOf(Rect(0, 0, bitmap.width, bitmap.height))
             }
@@ -70,9 +73,10 @@ class AnalyzerPipeline(
             for (box in boxes) {
                 val crop = safeCrop(bitmap, box) ?: continue
                 val res = classifier.classify(crop)
+                val thumb = thumbOf(crop)
                 if (crop !== bitmap) crop.recycle()
                 if (res.label == QualityClassifier.Label.CLEAN) clean++
-                items.add(ItemResult(box, res.label, res.confidence))
+                items.add(ItemResult(box, res.label, res.confidence, thumb))
             }
 
             onResult(
@@ -102,5 +106,17 @@ class AnalyzerPipeline(
         val h = y1 - y0
         if (w <= 0 || h <= 0) return null
         return Bitmap.createBitmap(src, x0, y0, w, h)
+    }
+
+    /** A detached, downscaled copy of the crop for on-screen display. */
+    private fun thumbOf(src: Bitmap, maxSide: Int = 400): Bitmap {
+        val longest = maxOf(src.width, src.height)
+        if (longest <= maxSide) {
+            return src.copy(Bitmap.Config.ARGB_8888, false)
+        }
+        val scale = maxSide.toFloat() / longest
+        val w = (src.width * scale).toInt().coerceAtLeast(1)
+        val h = (src.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(src, w, h, true)
     }
 }

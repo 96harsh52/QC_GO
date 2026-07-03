@@ -4,6 +4,71 @@
 
 ---
 
+## 2026-07-03 — Advanced UI + guided flow + dedicated Result screen
+
+**What was done**
+- Reworked the app into a polished, multi-screen experience per user request:
+  a guided 2-step capture flow and a separate result page with per-item cards.
+
+**New flow**
+- Step 1: capture empty background. Step 2: capture item(s). On capture, a new
+  `ResultActivity` opens showing: verdict headline (ALL CLEAN / DIRTY DETECTED),
+  Total/Clean/Dirty stat tiles, a clean-vs-dirty ratio bar with %, and a list of
+  each detected item with its cropped ROI thumbnail + prediction + confidence.
+
+**What changed (files)**
+- Added `ResultActivity.kt` (renders verdict/stats/ratio/item list),
+  `ResultStore.kt` (in-memory hand-off of the last FrameResult incl. thumbnails).
+- `AnalyzerPipeline.kt`: `ItemResult` now carries a downscaled ROI `thumb` bitmap
+  (`thumbOf`, max 400px) for display.
+- `MainActivity.kt`: rewritten as a guided state machine (backgroundReady /
+  capturing), navigates to ResultActivity on capture; nicer step pill + button.
+- Layouts: redesigned `activity_main.xml` (dark theme, framing guide, step pill,
+  bottom scrim, primary capture button, retake button); added
+  `activity_result.xml` and `item_result.xml`.
+- Resources: added `colors.xml` (dark palette + clean/dirty accents),
+  `themes.xml` (`Theme.QCGO`), 5 drawables (chips, frame guide, scrim, step pill);
+  rewrote `strings.xml`.
+- `AndroidManifest.xml`: registered ResultActivity, switched app theme to
+  `Theme.QCGO`.
+- Removed now-unused `OverlayView.kt` (boxes shown as crops on the result screen).
+
+**Why**
+- User wanted an advanced-developer-grade UI, a guided background→item flow, and a
+  result screen listing each item's photo + clean/dirty prediction and counts.
+
+**Result**
+- Committed + pushed; CI will build a new versioned APK/Release. NOT yet verified
+  on a device (built in cloud). Counting still untuned; whole-frame fallback keeps
+  a single-item clean/dirty answer reliable.
+
+---
+
+## 2026-07-03 — Versioned GitHub releases
+
+**What was done**
+- Made CI publish a UNIQUE versioned release per build instead of overwriting a
+  single `latest` release, so version history is preserved on GitHub.
+
+**What changed (files)**
+- `.github/workflows/android-build.yml`: added `env.APP_VERSION = 1.0.${{ github.run_number }}`,
+  passes `-PappVersionCode/-PappVersionName` to gradle, names the APK
+  `QC_GO-v<version>.apk`, and creates a release with tag `v<version>` (was fixed
+  tag `latest`).
+- `app/build.gradle.kts`: `versionCode`/`versionName` now read from project
+  properties (`appVersionCode`/`appVersionName`) with fallback `1` / `1.0.0`, so
+  the installed app shows the CI version.
+
+**Why**
+- User asked to maintain versions on GitHub.
+
+**Result**
+- Pushed. Next build creates release `v1.0.<run_number>` with its own APK; old
+  releases stay. NOTE: the earlier `latest` release/tag from prior runs still
+  exists on GitHub and can be deleted manually (can't remove it via SSH-only auth).
+
+---
+
 ## 2026-07-03 — App flow: capture-triggered check + clean/dirty count summary
 
 **What was done**
