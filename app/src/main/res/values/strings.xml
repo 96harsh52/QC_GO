@@ -1,6 +1,17 @@
 <resources>
     <string name="app_name">QC GO</string>
+
     <string name="capture_background">Capture background</string>
-    <string name="stats_initial">Total: 0  Clean: 0  Dirty: 0</string>
-    <string name="stats_fmt">Total: %1$d  Clean: %2$d  Dirty: %3$d</string>
+    <string name="capture_check">Capture &amp; Check</string>
+
+    <string name="result_hint">Point at the item(s), then tap Capture &amp; Check</string>
+    <string name="analyzing">Analyzing…</string>
+    <string name="result_none">No item detected — try again</string>
+
+    <!-- Single item -->
+    <string name="result_clean_one">✓ CLEAN  (%1$d%%)</string>
+    <string name="result_dirty_one">✗ DIRTY  (%1$d%%)</string>
+
+    <!-- Multiple items: total, clean, dirty -->
+    <string name="result_many">%1$d items\n%2$d clean · %3$d dirty</string>
 </resources>

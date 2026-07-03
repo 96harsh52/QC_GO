@@ -39,17 +39,22 @@ class MainActivity : AppCompatActivity() {
 
         if (!OpenCVLoader.initLocal()) {
             Log.e(TAG, "OpenCV failed to load")
-            Toast.makeText(this, "OpenCV init failed", Toast.LENGTH_LONG).show()
         }
 
         analysisExecutor = Executors.newSingleThreadExecutor()
         counter = ItemCounter()
         classifier = QualityClassifier(this)
-        pipeline = AnalyzerPipeline(counter, classifier) { result -> onFrameResult(result) }
+        pipeline = AnalyzerPipeline(counter, classifier) { result -> onCaptureResult(result) }
 
         binding.captureBgButton.setOnClickListener {
             pipeline.requestCaptureBackground()
             Toast.makeText(this, "Background captured", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.captureButton.setOnClickListener {
+            binding.resultText.text = getString(R.string.analyzing)
+            binding.resultText.setBackgroundColor(COLOR_NEUTRAL)
+            pipeline.requestCapture()
         }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -87,11 +92,37 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun onFrameResult(result: FrameResult) {
+    private fun onCaptureResult(result: FrameResult) {
         runOnUiThread {
             binding.overlay.setResult(result)
-            binding.statsText.text =
-                getString(R.string.stats_fmt, result.total, result.clean, result.dirty)
+
+            when {
+                result.total == 0 -> {
+                    binding.resultText.text = getString(R.string.result_none)
+                    binding.resultText.setBackgroundColor(COLOR_NEUTRAL)
+                }
+                result.total == 1 -> {
+                    // Single item: lead with the verdict + confidence.
+                    val item = result.items[0]
+                    val pct = (item.confidence * 100).toInt()
+                    if (result.dirty == 0) {
+                        binding.resultText.text = getString(R.string.result_clean_one, pct)
+                        binding.resultText.setBackgroundColor(COLOR_CLEAN)
+                    } else {
+                        binding.resultText.text = getString(R.string.result_dirty_one, pct)
+                        binding.resultText.setBackgroundColor(COLOR_DIRTY)
+                    }
+                }
+                else -> {
+                    // Multiple items: show the breakdown, e.g. "3 items\n1 clean · 2 dirty".
+                    binding.resultText.text = getString(
+                        R.string.result_many, result.total, result.clean, result.dirty,
+                    )
+                    binding.resultText.setBackgroundColor(
+                        if (result.dirty == 0) COLOR_CLEAN else COLOR_DIRTY,
+                    )
+                }
+            }
         }
     }
 
@@ -103,5 +134,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "QC_GO"
+        private const val COLOR_CLEAN = 0xE01B7F32.toInt()   // green
+        private const val COLOR_DIRTY = 0xE0B00020.toInt()   // red
+        private const val COLOR_NEUTRAL = 0xB0000000.toInt() // translucent black
     }
 }

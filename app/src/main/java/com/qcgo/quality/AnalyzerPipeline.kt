@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** One classified item. */
 data class ItemResult(val box: Rect, val label: QualityClassifier.Label, val confidence: Float)
 
-/** Aggregate result for one frame. */
+/** Aggregate result for one capture. */
 data class FrameResult(
     val total: Int,
     val clean: Int,
@@ -20,9 +20,12 @@ data class FrameResult(
 )
 
 /**
- * CameraX analyzer that chains: OpenCV count -> crop -> clean/dirty classify.
- * Configure the ImageAnalysis use case with RGBA_8888 output so each frame is a
- * ready-to-use bitmap.
+ * CameraX analyzer. Idle until the user taps "Capture & Check"; then it grabs the
+ * next frame, counts items (OpenCV), and classifies each one clean/dirty.
+ *
+ * Robust fallback: if the counter finds no items (e.g. background not captured or
+ * a single bottle filling the frame), the WHOLE frame is treated as one item so
+ * the user always gets a clean/dirty answer.
  */
 class AnalyzerPipeline(
     private val counter: ItemCounter,
@@ -30,11 +33,17 @@ class AnalyzerPipeline(
     private val onResult: (FrameResult) -> Unit,
 ) : ImageAnalysis.Analyzer {
 
-    // Set from the UI thread when the user taps "Capture background".
     private val captureBackground = AtomicBoolean(false)
+    private val captureRequested = AtomicBoolean(false)
 
+    /** Optional: record the current empty scene to help counting. */
     fun requestCaptureBackground() {
         captureBackground.set(true)
+    }
+
+    /** Capture the next frame and classify it. */
+    fun requestCapture() {
+        captureRequested.set(true)
     }
 
     override fun analyze(image: ImageProxy) {
@@ -43,9 +52,18 @@ class AnalyzerPipeline(
 
             if (captureBackground.getAndSet(false)) {
                 counter.setBackground(bitmap)
+                return
             }
 
-            val boxes: List<Rect> = counter.count(bitmap)
+            // Only do the heavy work when the user tapped "Capture & Check".
+            if (!captureRequested.getAndSet(false)) return
+
+            var boxes: List<Rect> = counter.count(bitmap)
+
+            // Fallback: nothing detected -> classify the whole frame as one item.
+            if (boxes.isEmpty()) {
+                boxes = listOf(Rect(0, 0, bitmap.width, bitmap.height))
+            }
 
             val items = ArrayList<ItemResult>(boxes.size)
             var clean = 0

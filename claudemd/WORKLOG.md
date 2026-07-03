@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-07-03 — App flow: capture-triggered check + clean/dirty count summary
+
+**What was done**
+- Changed the app from a continuous live-overlay analyzer to a **capture-triggered**
+  flow at the user's request: point camera → tap **"Capture & Check"** → app
+  classifies that frame and shows a clean/dirty verdict. User also asked for a
+  count breakdown ("1 clean, 2 dirty"), so counting was kept, not removed.
+
+**What changed (files)**
+- `AnalyzerPipeline.kt`: now idle until `requestCapture()`; on the next frame it
+  counts (OpenCV) + classifies each item. **Robust fallback**: if the counter
+  finds 0 boxes (no background set / single bottle filling frame), the WHOLE frame
+  is treated as one item, so a clean/dirty answer is ALWAYS produced.
+- `MainActivity.kt`: two buttons — "Capture background" (optional, aids counting)
+  and "Capture & Check" (primary). New `onCaptureResult` shows a big colored
+  banner: single item → "✓ CLEAN (95%)" / "✗ DIRTY (96%)"; multiple → "N items /
+  X clean · Y dirty". Green if all clean, red if any dirty.
+- `activity_main.xml`: big centered `resultText` banner + the two buttons; kept
+  `OverlayView` (now shows the frozen boxes of the last capture).
+- `strings.xml`: added capture_check / result_hint / analyzing / result_none /
+  result_clean_one / result_dirty_one / result_many; removed old stats strings.
+- Untouched but now effectively optional: `ItemCounter.kt` (still used),
+  `OverlayView.kt` (still used to draw boxes).
+
+**Why**
+- User wants: capture a bottle → tell clean or dirty; and if possible, count how
+  many are clean vs dirty.
+
+**Result**
+- Code committed + pushed; GitHub Actions will rebuild the APK and update the
+  `latest` Release. NOT yet verified on a device. Counting is still untuned, but
+  the whole-frame fallback guarantees a clean/dirty verdict regardless.
+
+---
+
 ## 2026-07-03 — Fresh-photo sanity check + no-Android-Studio deploy path
 
 **What was done**
@@ -41,6 +76,35 @@
 - Cloud build path ready. Pending: user picks A (push to GitHub) or B (local CLI);
   no build has actually run yet, so the APK is unverified. OpenCV Maven dep may
   still need the manual-SDK fallback (README caveat) if it fails to resolve in CI.
+
+---
+
+## 2026-07-03 — Pushed to GitHub, CI triggered
+
+**What was done**
+- Made the project a git repo and pushed to the user's GitHub to trigger the
+  cloud APK build.
+
+**What changed (files)**
+- Added `.gitignore` (excludes model/.venv 4.8G, Model_data 174M, model/data,
+  model/artifacts*, build/, .gradle/, .claude/ — keeps app + gradle + the shipped
+  tflite + python source + claudemd). Repo = 28 files, ~1.4 MB.
+- `git init` + commit + branch `main`, remote `git@github.com:96harsh52/QC_GO.git`.
+
+**Auth / push notes**
+- No `gh` CLI on the machine. User's `~/.ssh/id_rsa.pub` was NOT an account key,
+  so they added it as a **deploy key with write access** on the QC_GO repo — SSH
+  auth then succeeded ("Hi 96harsh52/QC_GO!").
+- Remote had an auto-generated `README.md` ("Initial commit"); force-pushed local
+  `main` over it (throwaway auto-init, safe).
+
+**Why**
+- User wanted to deploy to phone without Android Studio; cloud CI builds the APK.
+
+**Result**
+- Code live at https://github.com/96harsh52/QC_GO . GitHub Actions "Build APK"
+  triggered on push. APK artifact = `qcgo-debug-apk`. Still UNVERIFIED until the
+  run goes green; OpenCV Maven resolution is the most likely failure point.
 
 ---
 
