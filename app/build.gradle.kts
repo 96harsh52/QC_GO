@@ -11,8 +11,10 @@ android {
         applicationId = "com.qcgo.quality"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // Version is injected by CI (-PappVersionCode / -PappVersionName). Falls
+        // back to these values for local builds.
+        versionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("appVersionName") as String?) ?: "1.0.0"
     }
 
     buildTypes {
