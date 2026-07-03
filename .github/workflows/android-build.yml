@@ -1,0 +1,41 @@
+name: Build APK
+
+# Har push par aur manually (Actions tab -> Run workflow) APK banata hai.
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Android SDK (cmdline-tools + licenses accepted). AGP baaki
+      # platform/build-tools khud download kar leta hai.
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Project mein gradle wrapper nahi hai, isliye gradle 8.7 yahin dila lete hain
+      # (AGP 8.5.2 ke liye Gradle 8.7 chahiye).
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcgo-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

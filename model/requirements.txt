@@ -1,0 +1,6 @@
+# Python deps for the model side (training, export, OpenCV counting prototype).
+# Tested with Python 3.10-3.11.
+tensorflow==2.16.1
+tensorflow-hub==0.16.1   # only needed for the efficientnet_lite0 backbone
+opencv-python==4.10.0.84
+numpy<2.0

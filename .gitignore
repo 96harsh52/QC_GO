@@ -1,0 +1,23 @@
+# --- Build outputs ---
+.gradle/
+**/build/
+local.properties
+
+# --- IDE ---
+.idea/
+*.iml
+.claude/
+
+# --- Python training env & big artifacts (NOT needed to build the app) ---
+model/.venv/
+model/__pycache__/
+model/data/
+model/artifacts/
+model/artifacts_*/
+*.pyc
+
+# --- Large raw dataset (NOT needed to build the app) ---
+Model_data/
+
+# NOTE: app/src/main/assets/clean_dirty_int8.tflite is intentionally KEPT
+# (the app needs it) — it is small (1.2 MB) and not ignored.
