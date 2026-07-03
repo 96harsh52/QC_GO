@@ -26,12 +26,13 @@ data class FrameResult(
 
 /**
  * CameraX analyzer. Idle until the user taps "Capture Items"; then it grabs the
- * next frame, counts items (OpenCV), and classifies each one clean/dirty. Each
- * item keeps a downscaled ROI crop so the result screen can show it.
+ * next frame, isolates the single object against the (captured) background, and
+ * classifies it clean/dirty.
  *
- * Robust fallback: if the counter finds no items (e.g. a single bottle filling
- * the frame), the WHOLE frame is treated as one item, so the user always gets a
- * clean/dirty answer.
+ * We deliberately merge all foreground blobs into ONE bounding box (the object),
+ * instead of reporting every blob — the earlier per-blob counting split a single
+ * bottle into several boxes. Multi-object counting is disabled until the OpenCV
+ * parameters are tuned on real device frames.
  */
 class AnalyzerPipeline(
     private val counter: ItemCounter,
@@ -42,7 +43,7 @@ class AnalyzerPipeline(
     private val captureBackground = AtomicBoolean(false)
     private val captureRequested = AtomicBoolean(false)
 
-    /** Record the current empty scene to help counting. */
+    /** Record the current empty scene so the object can be isolated by subtraction. */
     fun requestCaptureBackground() {
         captureBackground.set(true)
     }
@@ -63,28 +64,23 @@ class AnalyzerPipeline(
 
             if (!captureRequested.getAndSet(false)) return
 
-            var boxes: List<Rect> = counter.count(bitmap)
-            if (boxes.isEmpty()) {
-                boxes = listOf(Rect(0, 0, bitmap.width, bitmap.height))
-            }
+            // Merge every detected foreground blob into a single object box.
+            val box = unionBox(counter.count(bitmap), bitmap.width, bitmap.height)
 
-            val items = ArrayList<ItemResult>(boxes.size)
-            var clean = 0
-            for (box in boxes) {
-                val crop = safeCrop(bitmap, box) ?: continue
-                val res = classifier.classify(crop)
-                val thumb = thumbOf(crop)
-                if (crop !== bitmap) crop.recycle()
-                if (res.label == QualityClassifier.Label.CLEAN) clean++
-                items.add(ItemResult(box, res.label, res.confidence, thumb))
-            }
+            val crop = safeCrop(bitmap, box) ?: bitmap
+            val res = classifier.classify(crop)
+            val thumb = thumbOf(crop)
+            if (crop !== bitmap) crop.recycle()
+
+            val clean = if (res.label == QualityClassifier.Label.CLEAN) 1 else 0
+            val item = ItemResult(box, res.label, res.confidence, thumb)
 
             onResult(
                 FrameResult(
-                    total = items.size,
+                    total = 1,
                     clean = clean,
-                    dirty = items.size - clean,
-                    items = items,
+                    dirty = 1 - clean,
+                    items = listOf(item),
                     frameWidth = bitmap.width,
                     frameHeight = bitmap.height,
                 )
@@ -92,6 +88,22 @@ class AnalyzerPipeline(
         } finally {
             image.close()
         }
+    }
+
+    /** Bounding box that spans all detected blobs; whole frame if none found. */
+    private fun unionBox(boxes: List<Rect>, w: Int, h: Int): Rect {
+        if (boxes.isEmpty()) return Rect(0, 0, w, h)
+        var l = Int.MAX_VALUE
+        var t = Int.MAX_VALUE
+        var r = Int.MIN_VALUE
+        var b = Int.MIN_VALUE
+        for (box in boxes) {
+            if (box.left < l) l = box.left
+            if (box.top < t) t = box.top
+            if (box.right > r) r = box.right
+            if (box.bottom > b) b = box.bottom
+        }
+        return Rect(l, t, r, b)
     }
 
     /** Crop a box (clamped to the frame) with a little padding for context. */

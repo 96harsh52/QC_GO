@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-07-03 — Fix box-spam: merge blobs into one object box
+
+**What was done**
+- User reported the app draws boxes on everything (a single bottle split into 3
+  "items"). Root cause: counting is OpenCV blob detection (NO YOLO / no object
+  model — confirmed against the Obsidian vault), so it fragments one object.
+- Interim fix: `AnalyzerPipeline` now merges ALL detected foreground blobs into a
+  single UNION bounding box = the object, classifies that one crop. Per-blob
+  multi-count is disabled until OpenCV params are tuned on real device frames.
+
+**What changed (files)**
+- `AnalyzerPipeline.kt`: added `unionBox()`; analyze() now yields exactly one item
+  (whole-frame fallback when nothing is detected).
+
+**Still open**
+- "Invalid item" (reject non-bottles) is NOT possible with OpenCV alone — needs an
+  object-aware model: either a 3-class classifier (clean/dirty/invalid) or a real
+  detector (YOLO). Pending user's choice of direction.
+
+**Result**
+- Pushed. Fixes the 1-bottle-into-3-boxes issue; invalid detection still pending.
+
+---
+
 ## 2026-07-03 — Advanced UI + guided flow + dedicated Result screen
 
 **What was done**
